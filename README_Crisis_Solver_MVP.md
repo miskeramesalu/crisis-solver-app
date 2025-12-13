@@ -97,7 +97,7 @@ Used to create, mint, and distribute **CrisisSolver Tokens (CST)** that reward u
 
 Ensures all transactions and donation logs are **publicly verifiable** and **tamper-proof**.
 
-### ⚙️ .env Configuration Example
+### ⚙️ .env Configuration
 
 ```bash
 # Backend Environment
@@ -246,6 +246,6 @@ You are free to use, modify, and distribute this project with attribution.
 
 ## 🌐 . Pitch Deck and Certification Links
 
-**Pitch Deck link**=https://www.canva.com/design/DAG3Sy8ri9A/5h3pms0c71-kYMBCpKhbyg/edit?utm_content=DAG3Sy8ri9A&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+**Pitch Deck link**=https://www.canva.com/design/DAG7VzfAR3k/QWvMLtHPdHP4d4YDhLAvKg/edit?utm_content=DAG7VzfAR3k&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
 
 **certification link**=https://certs.hashgraphdev.com/32630e03-32bf-4751-8cca-832a7de4e7cf.pdf

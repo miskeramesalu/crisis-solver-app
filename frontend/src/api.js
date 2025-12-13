@@ -1,159 +1,107 @@
+// frontend/src/api.js
 import axios from "axios";
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
+// Base API URL from environment variables
+const API_BASE = process.env.REACT_APP_API_URL;
+
+if (!API_BASE) {
+  console.error("❌ ERROR: REACT_APP_API_URL is missing in .env file");
+}
+
+/* ------------------------------------------------------
+ 📰 HELPER FUNCTION
+------------------------------------------------------ */
+const apiGet = async (path) => {
+  try {
+    const res = await axios.get(`${API_BASE}${path}`);
+    return res.data;
+  } catch (err) {
+    console.error(`❌ GET ${path} error:`, err.message);
+    throw err;
+  }
+};
+
+const apiPost = async (path, data, config = {}) => {
+  try {
+    const res = await axios.post(`${API_BASE}${path}`, data, config);
+    return res.data;
+  } catch (err) {
+    console.error(`❌ POST ${path} error:`, err.message);
+    throw err;
+  }
+};
 
 /* ------------------------------------------------------
  📰 MEDIA ENDPOINTS
 ------------------------------------------------------ */
 export const fetchMedia = async () => {
-  try {
-    const res = await axios.get(`${API}/media`);
-    return res.data.items || [];
-  } catch (err) {
-    console.error("❌ fetchMedia error:", err.message);
-    return [];
-  }
+  const data = await apiGet("/media");
+  return data.items || [];
 };
 
 export const uploadMedia = async ({ file, title, description, uploaderId }) => {
   if (!file) throw new Error("No file selected");
+
   const form = new FormData();
   form.append("media", file);
   form.append("title", title || "Untitled");
   form.append("description", description);
   form.append("uploaderAccountId", uploaderId);
 
-  try {
-    const res = await axios.post(`${API}/upload`, form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return res.data;
-  } catch (err) {
-    console.error("❌ uploadMedia error:", err.message);
-    throw err;
-  }
+  return apiPost("/upload", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 };
 
 export const viewMedia = async ({ mediaId, viewerAccountId }) => {
-  try {
-    const res = await axios.post(`${API}/view`, { mediaId, viewerAccountId });
-    return res.data;
-  } catch (err) {
-    console.error("❌ viewMedia error:", err.message);
-    throw err;
-  }
+  return apiPost("/view", { mediaId, viewerAccountId });
 };
 
 /* ------------------------------------------------------
  ❓ QUIZ ENDPOINTS
 ------------------------------------------------------ */
 export const submitQuiz = async ({ userId, quizId, answers }) => {
-  try {
-    const res = await axios.post(`${API}/answer`, { userId, quizId, answers });
-    return res.data;
-  } catch (err) {
-    console.error("❌ submitQuiz error:", err.message);
-    throw err;
-  }
+  return apiPost("/answer", { userId, quizId, answers });
 };
 
 /* ------------------------------------------------------
  🎮 GAME ENDPOINTS
 ------------------------------------------------------ */
 export const submitGame = async ({ userId, gameId, score }) => {
-  try {
-    const res = await axios.post(`${API}/game/complete`, {
-      userId,
-      gameId,
-      score,
-    });
-    return res.data;
-  } catch (err) {
-    console.error("❌ submitGame error:", err.message);
-    throw err;
-  }
+  return apiPost("/game/complete", { userId, gameId, score });
 };
 
 /* ------------------------------------------------------
  💸 DONATION ENDPOINTS
 ------------------------------------------------------ */
 export const submitDonation = async ({ donorId, amount, currency }) => {
-  try {
-    const res = await axios.post(`${API}/donate`, {
-      donorId,
-      amount,
-      currency,
-    });
-    return res.data;
-  } catch (err) {
-    console.error("❌ submitDonation error:", err.message);
-    throw err;
-  }
+  return apiPost("/donate", { donorId, amount, currency });
 };
 
 /* ------------------------------------------------------
  🧾 REFERRAL ENDPOINTS
 ------------------------------------------------------ */
 export const submitReferral = async ({ referrerId, newUserId }) => {
-  try {
-    const res = await axios.post(`${API}/referral`, { referrerId, newUserId });
-    return res.data;
-  } catch (err) {
-    console.error("❌ submitReferral error:", err.message);
-    throw err;
-  }
+  return apiPost("/referral", { referrerId, newUserId });
 };
 
 /* ------------------------------------------------------
- 🏆 LEADERBOARD & BALANCE ENDPOINTS
+ 🏆 LEADERBOARD ENDPOINTS
 ------------------------------------------------------ */
-
-// ✅ Get leaderboard
 export const fetchLeaderboard = async () => {
-  try {
-    const res = await axios.get(`${API}/leaderboard`);
-    return res.data.items || [];
-  } catch (err) {
-    console.error("❌ fetchLeaderboard error:", err.message);
-    return [];
-  }
+  const data = await apiGet("/leaderboard");
+  return data.items || [];
 };
 
-// ✅ Get individual user balance
 export const fetchUserBalance = async (userId) => {
-  try {
-    const res = await axios.get(`${API}/leaderboard/userBalance/${userId}`);
-    return res.data.balance || 0;
-  } catch (err) {
-    console.error("❌ fetchUserBalance error:", err.message);
-    return 0;
-  }
+  const data = await apiGet(`/leaderboard/userBalance/${userId}`);
+  return data.balance || 0;
 };
 
-// ✅ NEW: Update leaderboard after user activity
 export const updateLeaderboard = async ({ userId, points }) => {
-  try {
-    const res = await axios.post(`${API}/leaderboard/update`, {
-      userId,
-      points,
-    });
-    return res.data;
-  } catch (err) {
-    console.error("❌ updateLeaderboard error:", err.message);
-    throw err;
-  }
+  return apiPost("/leaderboard/update", { userId, points });
 };
 
-// ✅ NEW: Update user balance after reward
 export const updateUserBalance = async ({ userId, amount }) => {
-  try {
-    const res = await axios.post(`${API}/leaderboard/updateBalance`, {
-      userId,
-      amount,
-    });
-    return res.data;
-  } catch (err) {
-    console.error("❌ updateUserBalance error:", err.message);
-    throw err;
-  }
+  return apiPost("/leaderboard/updateBalance", { userId, amount });
 };

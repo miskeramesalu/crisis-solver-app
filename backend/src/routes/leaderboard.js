@@ -1,3 +1,4 @@
+// backend/src/routes/leaderboard.js
 import express from "express";
 import Leaderboard from "../models/leaderboardModel.js";
 import UserBalance from "../models/userBalanceModel.js";

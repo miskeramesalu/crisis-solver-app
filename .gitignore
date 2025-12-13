@@ -30,6 +30,9 @@ frontend/node_modules/.cache/
 backend/tmp/
 *.pack
 *.lock
+const API_BASE_URL = "https://crisis-solver-backend.onrender.com"; // Replace with your deployed backend
+export default API_BASE_URL;
+
 
 # --- Misc ---
 .idea/
