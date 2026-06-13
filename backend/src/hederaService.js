@@ -11,127 +11,300 @@ import {
   TransferTransaction,
   Hbar,
 } from "@hashgraph/sdk";
+
 import dotenv from "dotenv";
-dotenv.config(); // Load .env first
 
-export class HederaService {
+dotenv.config();
+
+class HederaService {
   constructor() {
-    // ✅ Read env variables directly
-    const accountId = process.env.HEDERA_ACCOUNT_ID;
-    const privateKey = process.env.HEDERA_PRIVATE_KEY;
+    try {
+      const accountId = process.env.HEDERA_ACCOUNT_ID?.trim();
 
-    if (!accountId || !privateKey) {
-      throw new Error("HEDERA_ACCOUNT_ID or HEDERA_PRIVATE_KEY missing!");
+      let privateKey =
+        process.env.HEDERA_PRIVATE_KEY?.trim();
+
+      if (!accountId) {
+        throw new Error(
+          "HEDERA_ACCOUNT_ID missing"
+        );
+      }
+
+      if (!privateKey) {
+        throw new Error(
+          "HEDERA_PRIVATE_KEY missing"
+        );
+      }
+
+      // Remove 0x prefix if present
+      if (privateKey.startsWith("0x")) {
+        privateKey = privateKey.slice(2);
+      }
+
+      this.accountId =
+        AccountId.fromString(accountId);
+
+      this.privateKey =
+        PrivateKey.fromStringECDSA(
+          privateKey
+        );
+
+      const network =
+        process.env.HEDERA_NETWORK?.toLowerCase() ||
+        "testnet";
+
+      this.client =
+        network === "mainnet"
+          ? Client.forMainnet()
+          : Client.forTestnet();
+
+      this.client.setOperator(
+        this.accountId,
+        this.privateKey
+      );
+
+      this.client.setDefaultMaxTransactionFee(
+        new Hbar(50)
+      );
+
+      this.client.setDefaultMaxQueryPayment(
+        new Hbar(50)
+      );
+
+      this.topicId = null;
+      this.tokenId = null;
+
+      console.log(
+        `✅ Hedera connected (${network})`
+      );
+
+      console.log(
+        `✅ Account: ${this.accountId}`
+      );
+    } catch (error) {
+      console.error(
+        "❌ Hedera initialization failed:"
+      );
+
+      console.error(error.message);
+
+      throw error;
     }
-
-    // ✅ Convert strings to SDK objects
-    this.accountId = AccountId.fromString(accountId);
-    this.privateKey = PrivateKey.fromStringED25519(privateKey);
-
-    // ✅ Create client for testnet
-    this.client = Client.forTestnet();
-    this.client.setOperator(this.accountId, this.privateKey);
-
-    this.topicId = null;
-    this.tokenId = null;
   }
 
-  // HCS Topic creation
-  async createTopic(memo = "Crisis Solver Topic") {
-    if (this.topicId) return this.topicId;
+  // =====================================================
+  // CREATE TOPIC
+  // =====================================================
 
-    const tx = new TopicCreateTransaction().setTopicMemo(memo);
-    const response = await tx.execute(this.client);
-    const receipt = await response.getReceipt(this.client);
+  async createTopic(
+    memo = "Crisis Solver Topic"
+  ) {
+    try {
+      if (this.topicId) {
+        return this.topicId;
+      }
 
-    this.topicId = receipt.topicId.toString();
-    console.log("✅ HCS Topic Created:", this.topicId);
-    return this.topicId;
+      const transaction =
+        new TopicCreateTransaction()
+          .setTopicMemo(memo);
+
+      const txResponse =
+        await transaction.execute(
+          this.client
+        );
+
+      const receipt =
+        await txResponse.getReceipt(
+          this.client
+        );
+
+      this.topicId =
+        receipt.topicId.toString();
+
+      console.log(
+        "✅ Topic Created:",
+        this.topicId
+      );
+
+      return this.topicId;
+    } catch (error) {
+      console.error(
+        "Create Topic Error:",
+        error.message
+      );
+
+      throw error;
+    }
   }
 
-  // Submit message to HCS
+  // =====================================================
+  // SUBMIT MESSAGE
+  // =====================================================
+
   async submitHcsMessage(message) {
-    if (!this.topicId) await this.createTopic();
+    try {
+      if (!this.topicId) {
+        await this.createTopic();
+      }
 
-    const tx = new TopicMessageSubmitTransaction()
-      .setTopicId(this.topicId)
-      .setMessage(message)
-      .execute(this.client);
+      const txResponse =
+        await new TopicMessageSubmitTransaction()
+          .setTopicId(this.topicId)
+          .setMessage(message)
+          .execute(this.client);
 
-    const receipt = await tx.getReceipt(this.client);
-    return {
-      topicId: this.topicId,
-      status: receipt.status.toString(),
-      consensusTimestamp: receipt.consensusTimestamp.toString(),
-    };
+      const receipt =
+        await txResponse.getReceipt(
+          this.client
+        );
+
+      return {
+        topicId: this.topicId,
+        status:
+          receipt.status.toString(),
+      };
+    } catch (error) {
+      console.error(
+        "Submit Message Error:",
+        error.message
+      );
+
+      throw error;
+    }
   }
 
-  // Create a fungible token
+  // =====================================================
+  // CREATE TOKEN
+  // =====================================================
+
   async createRewardToken() {
-    if (this.tokenId) return this.tokenId;
+    try {
+      if (this.tokenId) {
+        return this.tokenId;
+      }
 
-    const tx = await new TokenCreateTransaction()
-      .setTokenName("CrisisToken")
-      .setTokenSymbol("CRS")
-      .setDecimals(0)
-      .setInitialSupply(0)
-      .setTreasuryAccountId(this.accountId)
-      .setTokenType(TokenType.FUNGIBLE_COMMON)
-      .setSupplyType(TokenSupplyType.INFINITE)
-      .freezeWith(this.client);
+      const txResponse =
+        await new TokenCreateTransaction()
+          .setTokenName("CrisisToken")
+          .setTokenSymbol("CRS")
+          .setDecimals(0)
+          .setInitialSupply(0)
+          .setTreasuryAccountId(
+            this.accountId
+          )
+          .setAdminKey(
+            this.privateKey.publicKey
+          )
+          .setSupplyKey(
+            this.privateKey.publicKey
+          )
+          .setTokenType(
+            TokenType.FUNGIBLE_COMMON
+          )
+          .setSupplyType(
+            TokenSupplyType.INFINITE
+          )
+          .execute(this.client);
 
-    const signedTx = await tx.sign(this.privateKey);
-    const txResponse = await signedTx.execute(this.client);
-    const receipt = await txResponse.getReceipt(this.client);
+      const receipt =
+        await txResponse.getReceipt(
+          this.client
+        );
 
-    this.tokenId = receipt.tokenId.toString();
-    console.log("✅ HTS Token Created:", this.tokenId);
-    return this.tokenId;
+      this.tokenId =
+        receipt.tokenId.toString();
+
+      console.log(
+        "✅ Token Created:",
+        this.tokenId
+      );
+
+      return this.tokenId;
+    } catch (error) {
+      console.error(
+        "Create Token Error:",
+        error.message
+      );
+
+      throw error;
+    }
   }
 
-  // Mint tokens
+  // =====================================================
+  // MINT TOKEN
+  // =====================================================
+
   async mintToken(amount) {
-    if (!this.tokenId) throw new Error("Token not created yet");
+    try {
+      if (!this.tokenId) {
+        throw new Error(
+          "Token not created"
+        );
+      }
 
-    const tx = await new TokenMintTransaction()
-      .setTokenId(this.tokenId)
-      .setAmount(amount)
-      .execute(this.client);
+      const txResponse =
+        await new TokenMintTransaction()
+          .setTokenId(this.tokenId)
+          .setAmount(amount)
+          .execute(this.client);
 
-    const receipt = await tx.getReceipt(this.client);
-    console.log(`✅ Minted ${amount} CRS tokens`);
-    return receipt;
+      const receipt =
+        await txResponse.getReceipt(
+          this.client
+        );
+
+      return receipt.status.toString();
+    } catch (error) {
+      console.error(
+        "Mint Error:",
+        error.message
+      );
+
+      throw error;
+    }
   }
 
-  // Transfer tokens
-  async transferToken(fromAccountId, toAccountId, amount) {
-    if (!this.tokenId) throw new Error("Token not created yet");
+  // =====================================================
+  // SEND HBAR
+  // =====================================================
 
-    const tx = await new TransferTransaction()
-      .addTokenTransfer(
-        this.tokenId,
-        AccountId.fromString(fromAccountId),
-        -amount
-      )
-      .addTokenTransfer(this.tokenId, AccountId.fromString(toAccountId), amount)
-      .execute(this.client);
+  async sendHbar(
+    toAccountId,
+    amountHbar
+  ) {
+    try {
+      const txResponse =
+        await new TransferTransaction()
+          .addHbarTransfer(
+            this.accountId,
+            new Hbar(-amountHbar)
+          )
+          .addHbarTransfer(
+            AccountId.fromString(
+              toAccountId
+            ),
+            new Hbar(amountHbar)
+          )
+          .execute(this.client);
 
-    const receipt = await tx.getReceipt(this.client);
-    console.log(
-      `✅ Transferred ${amount} CRS from ${fromAccountId} to ${toAccountId}`
-    );
-    return receipt;
-  }
+      const receipt =
+        await txResponse.getReceipt(
+          this.client
+        );
 
-  // Send HBAR
-  async sendHbar(toAccountId, amountHbar) {
-    const tx = await new TransferTransaction()
-      .addHbarTransfer(this.accountId, new Hbar(-amountHbar))
-      .addHbarTransfer(AccountId.fromString(toAccountId), new Hbar(amountHbar))
-      .execute(this.client);
+      return receipt.status.toString();
+    } catch (error) {
+      console.error(
+        "HBAR Transfer Error:",
+        error.message
+      );
 
-    const receipt = await tx.getReceipt(this.client);
-    console.log(`✅ Sent ${amountHbar} HBAR to ${toAccountId}`);
-    return receipt;
+      throw error;
+    }
   }
 }
+
+const hederaService =
+  new HederaService();
+
+export default hederaService;

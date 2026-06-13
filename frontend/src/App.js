@@ -1,43 +1,76 @@
-import React, { useState } from "react";
-import Navbar from "./components/Navbar";
-import DashboardTab from "./components/DashboardTab";
-import QuizTab from "./components/QuizTab";
-import GameTab from "./components/GameTab";
-import DonationTab from "./components/DonationTab";
-import ReferralTab from "./components/ReferralTab";
-import MediaTab from "./components/MediaTab";
-import LeaderboardTab from "./components/LeaderboardTab";
+import "./styles/animations.css";
+import "./styles/global.css";
 
-const App = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { WalletProvider } from "./context/WalletContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-  const renderTab = () => {
-    switch (activeTab) {
-      case "dashboard":
-        return <DashboardTab />;
-      case "quiz":
-        return <QuizTab />;
-      case "game":
-        return <GameTab />;
-      case "donation":
-        return <DonationTab />;
-      case "referral":
-        return <ReferralTab />;
-      case "media":
-        return <MediaTab />;
-      case "leaderboard":
-        return <LeaderboardTab />;
-      default:
-        return <DashboardTab />;
-    }
-  };
+import HomePage from "./pages/HomePage";
+import DashboardPage from "./pages/DashboardPage";
+import WithdrawPage from "./pages/WithdrawPage";
+import PressKitPage from "./pages/PressKitPage";
+import Register from "./pages/Register";
+import Login from "./pages/Login";
 
+// NEW IMPORTS
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+
+import "./i18n/i18n";
+
+function App() {
   return (
-    <div className="min-h-screen flex flex-col bg-green-500">
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="flex-grow p-6">{renderTab()}</main>
-    </div>
+    <AuthProvider>
+      <WalletProvider>
+        <BrowserRouter>
+          <Routes>
+
+            {/* Public Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
+
+            {/* Password Recovery Routes */}
+            <Route
+              path="/forgot-password"
+              element={<ForgotPassword />}
+            />
+
+            <Route
+              path="/reset-password"
+              element={<ResetPassword />}
+            />
+
+            {/* Protected Routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/withdraw"
+              element={
+                <ProtectedRoute>
+                  <WithdrawPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/press-kit"
+              element={<PressKitPage />}
+            />
+
+          </Routes>
+        </BrowserRouter>
+      </WalletProvider>
+    </AuthProvider>
   );
-};
+}
 
 export default App;

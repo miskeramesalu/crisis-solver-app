@@ -1,4 +1,4 @@
-// frontend/src/api.js
+// frontend/src/services/api.js
 import axios from "axios";
 
 // Base API URL from environment variables
@@ -8,12 +8,43 @@ if (!API_BASE) {
   console.error("❌ ERROR: REACT_APP_API_URL is missing in .env file");
 }
 
+// Create axios instance with base URL
+const apiClient = axios.create({
+  baseURL: API_BASE,
+});
+
+// Request interceptor – automatically attach JWT token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor – handle token expiration globally
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid – clear local storage and redirect to login
+      localStorage.removeItem("token");
+      // Optional: redirect to login page
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
 /* ------------------------------------------------------
- 📰 HELPER FUNCTION
+ 📰 HELPER FUNCTIONS (using apiClient)
 ------------------------------------------------------ */
 const apiGet = async (path) => {
   try {
-    const res = await axios.get(`${API_BASE}${path}`);
+    const res = await apiClient.get(path);
     return res.data;
   } catch (err) {
     console.error(`❌ GET ${path} error:`, err.message);
@@ -23,12 +54,43 @@ const apiGet = async (path) => {
 
 const apiPost = async (path, data, config = {}) => {
   try {
-    const res = await axios.post(`${API_BASE}${path}`, data, config);
+    const res = await apiClient.post(path, data, config);
     return res.data;
   } catch (err) {
     console.error(`❌ POST ${path} error:`, err.message);
     throw err;
   }
+};
+
+/* ------------------------------------------------------
+ 🔐 AUTHENTICATION ENDPOINTS
+------------------------------------------------------ */
+export const register = async ({ username, email, password }) => {
+  const data = await apiPost("/auth/register", { username, email, password });
+  // Save token after successful registration
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+  }
+  return data;
+};
+
+export const login = async ({ email, password }) => {
+  const data = await apiPost("/auth/login", { email, password });
+  if (data.token) {
+    localStorage.setItem("token", data.token);
+  }
+  return data;
+};
+
+export const logout = () => {
+  localStorage.removeItem("token");
+  // Optionally redirect to login page
+  window.location.href = "/login";
+};
+
+export const getCurrentUser = async () => {
+  const data = await apiGet("/me");
+  return data.user;
 };
 
 /* ------------------------------------------------------
