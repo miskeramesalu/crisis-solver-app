@@ -1,6 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const PitchDeckSection = () => {
+  const navigate = useNavigate();
+
   const handleDownload = () => {
     const link = document.createElement("a");
     link.href = "/CRISIS-SOLVER-App.pdf";
@@ -8,6 +11,20 @@ const PitchDeckSection = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // 🔒 Protected download function
+  const handleProtectedDownload = () => {
+    const token = localStorage.getItem("token"); // login check
+
+    if (!token) {
+      // user NOT logged in → redirect to login page
+      navigate("/login");
+      return;
+    }
+
+    // user logged in → allow download
+    handleDownload();
   };
 
   return (
@@ -42,23 +59,24 @@ const PitchDeckSection = () => {
           lineHeight: "1.5",
         }}
       >
-        Crisis Solver is an innovative global platform that combines
-        rewards, donations, community engagement, and{" "}
+        Crisis Solver is an innovative global platform that combines rewards,
+        donations, community engagement, and{" "}
         <strong>Hedera-powered transparency</strong>
         to address humanitarian challenges worldwide.
-        By enabling users to earn through meaningful digital activities
-        while simultaneously generating support for verified humanitarian
-        projects, Crisis Solver transforms millions of small actions into
-        large-scale social impact.
+        By enabling users to earn through meaningful digital activities while
+        simultaneously generating support for verified humanitarian projects,
+        Crisis Solver transforms millions of small actions into large-scale
+        social impact.
 
         <br />
         <br />
 
-        🚀 <strong>Earn HBAR tokens</strong> • 🎮 Play impact games • 📹 Verify crisis media • 🤝 Donate transparently • 🌍 Support millions in need.
+        🚀 <strong>Earn HBAR tokens</strong> • 🎮 Play impact games • 📹 Verify
+        crisis media • 🤝 Donate transparently • 🌍 Support millions in need.
       </p>
 
       <button
-        onClick={handleDownload}
+        onClick={handleProtectedDownload}   // 🔒 changed here
         style={{
           padding: "12px 32px",
           backgroundColor: "#1e3a8a",
